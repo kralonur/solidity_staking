@@ -38,6 +38,23 @@ contract Staking {
         stakeHolders[msg.sender].staked += amount;
     }
 
+    function unstake(uint256 amount) external {
+        StakeHolder storage stakeHolder = stakeHolders[msg.sender];
+        require(
+            amount >= stakeHolder.staked,
+            "Amount exceeds the staked amount"
+        );
+        updateValues();
+        stakeHolder.availableReward +=
+            tps *
+            stakeHolder.staked -
+            stakeHolder.rewardMissed;
+        stakeHolder.staked -= amount;
+        stakeHolder.rewardMissed = calculateMissedRewards(stakeHolder.staked);
+        totalStaked -= amount;
+        tokenReward.transfer(msg.sender, amount); //for reentrancy
+    }
+
     function claimRewards() external {
         updateValues();
         StakeHolder storage stakeHolder = stakeHolders[msg.sender];
@@ -60,13 +77,13 @@ contract Staking {
         return tps + ((dailyReward * mathConstant) / totalStaked) * dayCount;
     }
 
-    function calculateMissedRewards(uint256 depositAmount)
+    function calculateMissedRewards(uint256 amount)
         private
         view
         returns (uint256)
     {
-        console.log("Amount: %s, Tps: %s", depositAmount, tps);
-        return depositAmount * tps;
+        console.log("Amount: %s, Tps: %s", amount, tps);
+        return amount * tps;
     }
 
     function calculateAvailableRewards(address stakeHolderAddress)

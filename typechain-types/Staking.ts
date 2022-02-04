@@ -33,6 +33,7 @@ export interface StakingInterface extends utils.Interface {
     "tokenStaking()": FunctionFragment;
     "totalStaked()": FunctionFragment;
     "tps()": FunctionFragment;
+    "unstake(uint256)": FunctionFragment;
     "updateValues()": FunctionFragment;
   };
 
@@ -82,6 +83,10 @@ export interface StakingInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "tps", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "unstake",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "updateValues",
     values?: undefined
@@ -133,6 +138,7 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "tps", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "unstake", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "updateValues",
     data: BytesLike
@@ -215,6 +221,11 @@ export interface Staking extends BaseContract {
 
     tps(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    unstake(
+      amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     updateValues(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -266,6 +277,11 @@ export interface Staking extends BaseContract {
 
   tps(overrides?: CallOverrides): Promise<BigNumber>;
 
+  unstake(
+    amount: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   updateValues(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -311,6 +327,8 @@ export interface Staking extends BaseContract {
     totalStaked(overrides?: CallOverrides): Promise<BigNumber>;
 
     tps(overrides?: CallOverrides): Promise<BigNumber>;
+
+    unstake(amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     updateValues(overrides?: CallOverrides): Promise<void>;
   };
@@ -358,6 +376,11 @@ export interface Staking extends BaseContract {
 
     tps(overrides?: CallOverrides): Promise<BigNumber>;
 
+    unstake(
+      amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     updateValues(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -403,6 +426,11 @@ export interface Staking extends BaseContract {
     totalStaked(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     tps(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    unstake(
+      amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     updateValues(
       overrides?: Overrides & { from?: string | Promise<string> }
