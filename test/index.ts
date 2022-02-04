@@ -193,6 +193,30 @@ describe("Staking", function () {
     expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(accounts[2].address)))
       .equal("45.4545454545454525");
   });
+
+  it("Should unstake", async function () {
+    const stakeHolderFirstAmount = 1000;
+
+    // stake holder 1 mint and approve 
+    await tokenStaking.mint(owner.address, stakeHolderFirstAmount);
+    await tokenStaking.approve(staking.address, stakeHolderFirstAmount * 2); // for unstake test
+
+    await staking.stake(stakeHolderFirstAmount);
+
+    await expect(staking.unstake(stakeHolderFirstAmount * 5))
+      .to.be.revertedWith("Amount exceeds the staked amount");
+
+    await expect(await staking.unstake(stakeHolderFirstAmount / 2))
+      .to.emit(tokenStaking, "Transfer")
+      .withArgs(staking.address, owner.address, stakeHolderFirstAmount / 2);
+    await staking.unstake(stakeHolderFirstAmount / 2);
+
+    await staking.stake(stakeHolderFirstAmount);
+    await simulateTimePassed();
+    await staking.updateValues();
+    expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(owner.address)))
+      .equal("100.0");
+  });
 });
 
 

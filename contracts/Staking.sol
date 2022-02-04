@@ -41,7 +41,7 @@ contract Staking {
     function unstake(uint256 amount) external {
         StakeHolder storage stakeHolder = stakeHolders[msg.sender];
         require(
-            amount >= stakeHolder.staked,
+            amount <= stakeHolder.staked,
             "Amount exceeds the staked amount"
         );
         updateValues();
@@ -52,7 +52,7 @@ contract Staking {
         stakeHolder.staked -= amount;
         stakeHolder.rewardMissed = calculateMissedRewards(stakeHolder.staked);
         totalStaked -= amount;
-        tokenReward.transfer(msg.sender, amount); //for reentrancy
+        tokenStaking.transfer(msg.sender, amount); //for reentrancy
     }
 
     function claimRewards() external {
