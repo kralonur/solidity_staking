@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "hardhat/console.sol";
 
 /**
@@ -9,6 +10,8 @@ import "hardhat/console.sol";
  * @author Me
  */
 contract Staking {
+    using SafeERC20 for IERC20;
+
     /// Total staked to the contract
     uint256 public totalStaked;
     /// Total reward produced
@@ -72,7 +75,7 @@ contract Staking {
      * @param amount The amount to stake
      */
     function stake(uint256 amount) external {
-        tokenStaking.transferFrom(msg.sender, address(this), amount);
+        tokenStaking.safeTransferFrom(msg.sender, address(this), amount);
         updateValues();
         totalStaked += amount;
         _stakeHolders[msg.sender].rewardMissed += _calculateMissedRewards(
@@ -101,7 +104,7 @@ contract Staking {
         stakeHolder.staked -= amount;
         stakeHolder.rewardMissed = _calculateMissedRewards(stakeHolder.staked);
         totalStaked -= amount;
-        tokenStaking.transfer(msg.sender, amount); //for reentrancy
+        tokenStaking.safeTransfer(msg.sender, amount); //for reentrancy
 
         emit Unstake(msg.sender, amount);
     }
@@ -114,7 +117,7 @@ contract Staking {
         StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
         uint256 awardToClaim = calculateAvailableRewards(msg.sender);
 
-        tokenReward.transfer(msg.sender, awardToClaim);
+        tokenReward.safeTransfer(msg.sender, awardToClaim);
 
         stakeHolder.rewardMissed += awardToClaim * precision;
 
