@@ -1,5 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { Token, Token__factory, Staking, Staking__factory } from "../typechain-types";
 
@@ -18,7 +19,7 @@ describe("Staking", function () {
   beforeEach(async function () {
     tokenStaking = await getTokenContract(owner);
     tokenReward = await getTokenContract(owner);
-    staking = await getStakingContract(owner, tokenStaking.address, tokenReward.address);
+    staking = await getStakingContract(owner, tokenStaking.address, tokenReward.address, ethers.utils.parseEther("100"));
   });
 
   it("Should stake", async function () {
@@ -202,9 +203,9 @@ async function getTokenContract(owner: SignerWithAddress) {
   return contract;
 }
 
-async function getStakingContract(owner: SignerWithAddress, addressTokenStaking: string, addressTokenReward: string) {
+async function getStakingContract(owner: SignerWithAddress, addressTokenStaking: string, addressTokenReward: string, dailyReward: BigNumber) {
   const factory = new Staking__factory(owner);
-  const contract = await factory.deploy(addressTokenStaking, addressTokenReward);
+  const contract = await factory.deploy(addressTokenStaking, addressTokenReward, dailyReward);
   await contract.deployed();
 
   return contract;

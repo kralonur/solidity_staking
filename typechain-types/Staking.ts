@@ -17,6 +17,20 @@ import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
+export declare namespace Staking {
+  export type StakeHolderStruct = {
+    staked: BigNumberish;
+    availableReward: BigNumberish;
+    rewardMissed: BigNumberish;
+  };
+
+  export type StakeHolderStructOutput = [BigNumber, BigNumber, BigNumber] & {
+    staked: BigNumber;
+    availableReward: BigNumber;
+    rewardMissed: BigNumber;
+  };
+}
+
 export interface StakingInterface extends utils.Interface {
   contractName: "Staking";
   functions: {
@@ -26,13 +40,17 @@ export interface StakingInterface extends utils.Interface {
     "dailyReward()": FunctionFragment;
     "getStakeHolder(address)": FunctionFragment;
     "lastUpdateTime()": FunctionFragment;
+    "owner()": FunctionFragment;
     "precision()": FunctionFragment;
+    "renounceOwnership()": FunctionFragment;
     "rewardProduced()": FunctionFragment;
+    "setParameters(uint256)": FunctionFragment;
     "stake(uint256)": FunctionFragment;
     "tokenReward()": FunctionFragment;
     "tokenStaking()": FunctionFragment;
     "totalStaked()": FunctionFragment;
     "tps()": FunctionFragment;
+    "transferOwnership(address)": FunctionFragment;
     "unstake(uint256)": FunctionFragment;
     "updateValues()": FunctionFragment;
   };
@@ -61,10 +79,19 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "lastUpdateTime",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(functionFragment: "precision", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "renounceOwnership",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "rewardProduced",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setParameters",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "stake", values: [BigNumberish]): string;
   encodeFunctionData(
@@ -80,6 +107,10 @@ export interface StakingInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "tps", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "transferOwnership",
+    values: [string]
+  ): string;
   encodeFunctionData(
     functionFragment: "unstake",
     values: [BigNumberish]
@@ -113,9 +144,18 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "lastUpdateTime",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "precision", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "renounceOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "rewardProduced",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setParameters",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "stake", data: BytesLike): Result;
@@ -132,6 +172,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "tps", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "transferOwnership",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "unstake", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "updateValues",
@@ -140,11 +184,13 @@ export interface StakingInterface extends utils.Interface {
 
   events: {
     "Claim(address,uint256)": EventFragment;
+    "OwnershipTransferred(address,address)": EventFragment;
     "Stake(address,uint256)": EventFragment;
     "Unstake(address,uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Claim"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Stake"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Unstake"): EventFragment;
 }
@@ -155,6 +201,14 @@ export type ClaimEvent = TypedEvent<
 >;
 
 export type ClaimEventFilter = TypedEventFilter<ClaimEvent>;
+
+export type OwnershipTransferredEvent = TypedEvent<
+  [string, string],
+  { previousOwner: string; newOwner: string }
+>;
+
+export type OwnershipTransferredEventFilter =
+  TypedEventFilter<OwnershipTransferredEvent>;
 
 export type StakeEvent = TypedEvent<
   [string, BigNumber],
@@ -217,19 +271,24 @@ export interface Staking extends BaseContract {
     getStakeHolder(
       stakeHolderAddress: string,
       overrides?: CallOverrides
-    ): Promise<
-      [BigNumber, BigNumber, BigNumber] & {
-        staked: BigNumber;
-        availableReward: BigNumber;
-        rewardMissed: BigNumber;
-      }
-    >;
+    ): Promise<[Staking.StakeHolderStructOutput]>;
 
     lastUpdateTime(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    owner(overrides?: CallOverrides): Promise<[string]>;
+
     precision(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    renounceOwnership(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     rewardProduced(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    setParameters(
+      _dailyReward: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     stake(
       amount: BigNumberish,
@@ -243,6 +302,11 @@ export interface Staking extends BaseContract {
     totalStaked(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     tps(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    transferOwnership(
+      newOwner: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     unstake(
       amount: BigNumberish,
@@ -273,19 +337,24 @@ export interface Staking extends BaseContract {
   getStakeHolder(
     stakeHolderAddress: string,
     overrides?: CallOverrides
-  ): Promise<
-    [BigNumber, BigNumber, BigNumber] & {
-      staked: BigNumber;
-      availableReward: BigNumber;
-      rewardMissed: BigNumber;
-    }
-  >;
+  ): Promise<Staking.StakeHolderStructOutput>;
 
   lastUpdateTime(overrides?: CallOverrides): Promise<BigNumber>;
 
+  owner(overrides?: CallOverrides): Promise<string>;
+
   precision(overrides?: CallOverrides): Promise<BigNumber>;
 
+  renounceOwnership(
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
+
+  setParameters(
+    _dailyReward: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   stake(
     amount: BigNumberish,
@@ -299,6 +368,11 @@ export interface Staking extends BaseContract {
   totalStaked(overrides?: CallOverrides): Promise<BigNumber>;
 
   tps(overrides?: CallOverrides): Promise<BigNumber>;
+
+  transferOwnership(
+    newOwner: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   unstake(
     amount: BigNumberish,
@@ -327,19 +401,22 @@ export interface Staking extends BaseContract {
     getStakeHolder(
       stakeHolderAddress: string,
       overrides?: CallOverrides
-    ): Promise<
-      [BigNumber, BigNumber, BigNumber] & {
-        staked: BigNumber;
-        availableReward: BigNumber;
-        rewardMissed: BigNumber;
-      }
-    >;
+    ): Promise<Staking.StakeHolderStructOutput>;
 
     lastUpdateTime(overrides?: CallOverrides): Promise<BigNumber>;
 
+    owner(overrides?: CallOverrides): Promise<string>;
+
     precision(overrides?: CallOverrides): Promise<BigNumber>;
 
+    renounceOwnership(overrides?: CallOverrides): Promise<void>;
+
     rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
+
+    setParameters(
+      _dailyReward: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     stake(amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
@@ -350,6 +427,11 @@ export interface Staking extends BaseContract {
     totalStaked(overrides?: CallOverrides): Promise<BigNumber>;
 
     tps(overrides?: CallOverrides): Promise<BigNumber>;
+
+    transferOwnership(
+      newOwner: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     unstake(amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
@@ -362,6 +444,15 @@ export interface Staking extends BaseContract {
       amount?: null
     ): ClaimEventFilter;
     Claim(stakeHolder?: string | null, amount?: null): ClaimEventFilter;
+
+    "OwnershipTransferred(address,address)"(
+      previousOwner?: string | null,
+      newOwner?: string | null
+    ): OwnershipTransferredEventFilter;
+    OwnershipTransferred(
+      previousOwner?: string | null,
+      newOwner?: string | null
+    ): OwnershipTransferredEventFilter;
 
     "Stake(address,uint256)"(
       stakeHolder?: string | null,
@@ -400,9 +491,20 @@ export interface Staking extends BaseContract {
 
     lastUpdateTime(overrides?: CallOverrides): Promise<BigNumber>;
 
+    owner(overrides?: CallOverrides): Promise<BigNumber>;
+
     precision(overrides?: CallOverrides): Promise<BigNumber>;
 
+    renounceOwnership(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
+
+    setParameters(
+      _dailyReward: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     stake(
       amount: BigNumberish,
@@ -416,6 +518,11 @@ export interface Staking extends BaseContract {
     totalStaked(overrides?: CallOverrides): Promise<BigNumber>;
 
     tps(overrides?: CallOverrides): Promise<BigNumber>;
+
+    transferOwnership(
+      newOwner: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     unstake(
       amount: BigNumberish,
@@ -451,9 +558,20 @@ export interface Staking extends BaseContract {
 
     lastUpdateTime(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    owner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     precision(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    renounceOwnership(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     rewardProduced(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    setParameters(
+      _dailyReward: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     stake(
       amount: BigNumberish,
@@ -467,6 +585,11 @@ export interface Staking extends BaseContract {
     totalStaked(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     tps(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    transferOwnership(
+      newOwner: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     unstake(
       amount: BigNumberish,

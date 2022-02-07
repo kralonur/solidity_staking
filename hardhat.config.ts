@@ -5,6 +5,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "solidity-coverage";
 import "hardhat-docgen";
+import "hardhat-gas-reporter";
 
 dotenv.config();
 
@@ -30,6 +31,10 @@ const config: HardhatUserConfig = {
     path: './docs',
     clear: true,
     runOnCompile: true
+  },
+  gasReporter: {
+    currency: 'CHF',
+    gasPrice: 21
   }
 };
 

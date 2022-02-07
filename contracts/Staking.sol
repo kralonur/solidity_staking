@@ -3,13 +3,14 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
 /**
  * @title A staking contract that uses different tokens for staking and reward
  * @author Me
  */
-contract Staking {
+contract Staking is Ownable {
     using SafeERC20 for IERC20;
 
     /// Total staked to the contract
@@ -17,7 +18,7 @@ contract Staking {
     /// Total reward produced
     uint256 public rewardProduced;
     /// Daily reward to share between stake holders
-    uint256 public dailyReward = 100 * precision;
+    uint256 public dailyReward; // default value
     /// Last update time
     uint256 public lastUpdateTime;
     /// Token per stake
@@ -45,9 +46,14 @@ contract Staking {
     /// A mapping for storing stake holders
     mapping(address => StakeHolder) private _stakeHolders;
 
-    constructor(address addressTokenStaking, address addressTokenReward) {
+    constructor(
+        address addressTokenStaking,
+        address addressTokenReward,
+        uint256 _dailyReward
+    ) {
         tokenStaking = IERC20(addressTokenStaking);
         tokenReward = IERC20(addressTokenReward);
+        dailyReward = _dailyReward;
         lastUpdateTime = block.timestamp;
     }
 
@@ -124,22 +130,25 @@ contract Staking {
         emit Claim(msg.sender, awardToClaim);
     }
 
+    /**
+     * @dev Claims the rewards for the stake holder
+     * @param _dailyReward See {dailyReward}
+     */
+    function setParameters(uint256 _dailyReward) external onlyOwner {
+        dailyReward = _dailyReward;
+    }
+
     /// See {StakeHolder}
     function getStakeHolder(address stakeHolderAddress)
         external
         view
-        returns (
-            uint256 staked,
-            uint256 availableReward,
-            uint256 rewardMissed
-        )
+        returns (StakeHolder memory)
     {
         StakeHolder memory stakeHolder = _stakeHolders[stakeHolderAddress];
-        return (
-            stakeHolder.staked,
-            stakeHolder.availableReward,
-            stakeHolder.rewardMissed
+        stakeHolder.availableReward = calculateAvailableRewards(
+            stakeHolderAddress
         );
+        return (stakeHolder);
     }
 
     /**
