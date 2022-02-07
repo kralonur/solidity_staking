@@ -17,10 +17,14 @@ contract Staking is Ownable {
     uint256 public totalStaked;
     /// Total reward produced
     uint256 public rewardProduced;
-    /// Daily reward to share between stake holders
-    uint256 public dailyReward; // default value
+    /// Reward to share between stake holders
+    uint256 public reward; // default value
     /// Last update time
     uint256 public lastUpdateTime;
+    /// Period for claiming {reward}, ex: 1 hour (hourly)
+    uint256 public tokenClaimPeriod;
+    /// Duration of given {reward}, ex: 200 token for 2 days
+    uint256 public duration;
     /// Token per stake
     uint256 public tps;
 
@@ -49,11 +53,15 @@ contract Staking is Ownable {
     constructor(
         address addressTokenStaking,
         address addressTokenReward,
-        uint256 _dailyReward
+        uint256 _reward,
+        uint256 _tokenClaimPeriod,
+        uint256 _duration
     ) {
         tokenStaking = IERC20(addressTokenStaking);
         tokenReward = IERC20(addressTokenReward);
-        dailyReward = _dailyReward;
+        reward = _reward;
+        tokenClaimPeriod = _tokenClaimPeriod;
+        duration = _duration;
         lastUpdateTime = block.timestamp;
     }
 
@@ -127,15 +135,25 @@ contract Staking is Ownable {
 
         stakeHolder.rewardMissed += awardToClaim * precision;
 
+        rewardProduced += awardToClaim;
+
         emit Claim(msg.sender, awardToClaim);
     }
 
     /**
-     * @dev Claims the rewards for the stake holder
-     * @param _dailyReward See {dailyReward}
+     * @dev Sets the parameters for contract
+     * @param _reward See {reward}
+     * @param _tokenClaimPeriod See {tokenClaimPeriod}
+     * @param _duration See {duration}
      */
-    function setParameters(uint256 _dailyReward) external onlyOwner {
-        dailyReward = _dailyReward;
+    function setParameters(
+        uint256 _reward,
+        uint256 _tokenClaimPeriod,
+        uint256 _duration
+    ) external onlyOwner {
+        reward = _reward;
+        tokenClaimPeriod = _tokenClaimPeriod;
+        duration = _duration;
     }
 
     /// See {StakeHolder}
@@ -155,19 +173,24 @@ contract Staking is Ownable {
      * @dev Updates necessary values to calculate stake
      */
     function updateValues() public {
-        uint256 dayCount = (block.timestamp - lastUpdateTime) / 1 days;
-        lastUpdateTime += dayCount * 1 days;
-        tps = calculateTps(dayCount);
+        uint256 passedTime = (block.timestamp - lastUpdateTime) /
+            tokenClaimPeriod;
+        lastUpdateTime += passedTime * tokenClaimPeriod;
+        tps = calculateTps(passedTime);
     }
 
     /**
      * @dev Calculates the tps, see{tps}
-     * @param dayCount The day count to calculate tps
+     * @param passedTime The passed time to calculate tps
      */
-    function calculateTps(uint256 dayCount) public view returns (uint256) {
+    function calculateTps(uint256 passedTime) public view returns (uint256) {
         if (totalStaked == 0) return 0;
 
-        return tps + ((dailyReward * precision) / totalStaked) * dayCount;
+        return
+            tps +
+            ((reward * precision * tokenClaimPeriod) /
+                (totalStaked * duration)) *
+            passedTime;
     }
 
     /**
@@ -181,13 +204,8 @@ contract Staking is Ownable {
     {
         StakeHolder storage stakeHolder = _stakeHolders[stakeHolderAddress];
 
-        uint256 dayCount = (block.timestamp - lastUpdateTime) / 1 days;
-        uint256 currentTps = tps +
-            ((dailyReward * precision) / totalStaked) *
-            dayCount;
-
         return
-            (currentTps *
+            (tps *
                 stakeHolder.staked -
                 stakeHolder.rewardMissed +
                 stakeHolder.availableReward) / precision;

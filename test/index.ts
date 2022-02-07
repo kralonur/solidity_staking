@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumber } from "ethers";
+import { BigNumber, BigNumberish } from "ethers";
 import { ethers } from "hardhat";
 import { Token, Token__factory, Staking, Staking__factory } from "../typechain-types";
 
@@ -19,7 +19,7 @@ describe("Staking", function () {
   beforeEach(async function () {
     tokenStaking = await getTokenContract(owner);
     tokenReward = await getTokenContract(owner);
-    staking = await getStakingContract(owner, tokenStaking.address, tokenReward.address, ethers.utils.parseEther("100"));
+    staking = await getStakingContract(owner, tokenStaking.address, tokenReward.address, ethers.utils.parseEther("100"), (1 * (60 * 60 * 24)), (1 * (60 * 60 * 24)));
   });
 
   it("Should stake", async function () {
@@ -133,7 +133,7 @@ describe("Staking", function () {
       .equal("45.4545454545454525");
   });
 
-  it("Should claim rewards", async function () {
+  it("Should return reward available setting parameters ", async function () {
     const stakeHolderFirstAmount = ethers.utils.parseEther("1000");
     const stakeHolderSecondAmount = ethers.utils.parseEther("2000");
     const stakeHolderThirdAmount = ethers.utils.parseEther("2500");
@@ -147,9 +147,56 @@ describe("Staking", function () {
     // stake holder 3 mint and approve 
     await tokenStaking.mint(accounts[2].address, stakeHolderThirdAmount);
     await tokenStaking.connect(accounts[2]).approve(staking.address, stakeHolderThirdAmount);
+
+    // Day 1
+    await staking.stake(stakeHolderFirstAmount);
+    await simulateTimePassed();
+    await staking.updateValues();
+    expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(owner.address)))
+      .equal("100.0");
+
+    // Day 2
+    await staking.connect(accounts[1]).stake(stakeHolderSecondAmount);
+    await simulateTimePassed();
+    await staking.updateValues();
+    expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(owner.address)))
+      .equal("133.333333333333333");
+    expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(accounts[1].address)))
+      .equal("66.666666666666666");
+
+    // After day 2 set parameters for test
+    await staking.setParameters(ethers.utils.parseEther("500"), (1 * (60 * 60 * 24)), (1 * (60 * 60 * 24)));
+
+    // Day 3
+    await staking.connect(accounts[2]).stake(stakeHolderThirdAmount);
+    await simulateTimePassed();
+    await staking.updateValues();
+    expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(owner.address)))
+      .equal("224.242424242424242");
+    expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(accounts[1].address)))
+      .equal("248.484848484848484");
+    expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(accounts[2].address)))
+      .equal("227.2727272727272725");
+  });
+
+  it("Should claim rewards", async function () {
+    const stakeHolderFirstAmount = ethers.utils.parseEther("1000");
+    const stakeHolderSecondAmount = ethers.utils.parseEther("2000");
+    const stakeHolderThirdAmount = ethers.utils.parseEther("2500");
+    const totalRewardToMint = ethers.utils.parseEther("151.515151515151514").add(ethers.utils.parseEther("103.030303030303028")).add(ethers.utils.parseEther("45.4545454545454525"));
+
+    // stake holder 1 mint and approve 
+    await tokenStaking.mint(owner.address, stakeHolderFirstAmount);
+    await tokenStaking.approve(staking.address, stakeHolderFirstAmount);
+    // stake holder 2 mint and approve 
+    await tokenStaking.mint(accounts[1].address, stakeHolderSecondAmount);
+    await tokenStaking.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
+    // stake holder 3 mint and approve 
+    await tokenStaking.mint(accounts[2].address, stakeHolderThirdAmount);
+    await tokenStaking.connect(accounts[2]).approve(staking.address, stakeHolderThirdAmount);
     // mint reward tokens
-    await tokenReward.mint(staking.address, ethers.utils.parseEther("2500"));
-    await tokenReward.approve(staking.address, ethers.utils.parseEther("2500"));
+    await tokenReward.mint(staking.address, totalRewardToMint);
+    await tokenReward.approve(staking.address, totalRewardToMint);
 
 
     // Day 1
@@ -167,6 +214,17 @@ describe("Staking", function () {
     await expect(await staking.claimRewards())
       .to.emit(tokenReward, "Transfer")
       .withArgs(staking.address, owner.address, ethers.utils.parseEther("151.515151515151514"));
+
+    await expect(await staking.connect(accounts[1]).claimRewards())
+      .to.emit(tokenReward, "Transfer")
+      .withArgs(staking.address, accounts[1].address, ethers.utils.parseEther("103.030303030303028"));
+
+    await expect(await staking.connect(accounts[2]).claimRewards())
+      .to.emit(tokenReward, "Transfer")
+      .withArgs(staking.address, accounts[2].address, ethers.utils.parseEther("45.4545454545454525"));
+
+    expect(await staking.rewardProduced())
+      .equal(totalRewardToMint);
   });
 
   it("Should unstake", async function () {
@@ -194,15 +252,29 @@ describe("Staking", function () {
   });
 
   it("Should update daily reward", async function () {
-    const dailyReward = ethers.utils.parseEther("200");
+    const reward = ethers.utils.parseEther("200");
+    const tokenClaimPeriod = (1 * (60 * 60)); // 1 hour
+    const duration = (2 * (60 * 60 * 24)); // 1 days
 
-    expect(ethers.utils.formatEther(await staking.dailyReward()))
+    expect(ethers.utils.formatEther(await staking.reward()))
       .equal("100.0");
 
-    await staking.setParameters(dailyReward);
+    expect(await staking.tokenClaimPeriod())
+      .equal((1 * (60 * 60 * 24))); // 1 day by default
 
-    expect(ethers.utils.formatEther(await staking.dailyReward()))
+    expect(await staking.duration())
+      .equal((1 * (60 * 60 * 24))); // 1 day by default
+
+    await staking.setParameters(reward, tokenClaimPeriod, duration);
+
+    expect(ethers.utils.formatEther(await staking.reward()))
       .equal("200.0");
+
+    expect(await staking.tokenClaimPeriod())
+      .equal(tokenClaimPeriod);
+
+    expect(await staking.duration())
+      .equal(duration);
   });
 });
 
@@ -215,9 +287,9 @@ async function getTokenContract(owner: SignerWithAddress) {
   return contract;
 }
 
-async function getStakingContract(owner: SignerWithAddress, addressTokenStaking: string, addressTokenReward: string, dailyReward: BigNumber) {
+async function getStakingContract(owner: SignerWithAddress, addressTokenStaking: string, addressTokenReward: string, dailyReward: BigNumberish, tokenClaimPeriod: BigNumberish, duration: BigNumberish) {
   const factory = new Staking__factory(owner);
-  const contract = await factory.deploy(addressTokenStaking, addressTokenReward, dailyReward);
+  const contract = await factory.deploy(addressTokenStaking, addressTokenReward, dailyReward, tokenClaimPeriod, duration);
   await contract.deployed();
 
   return contract;

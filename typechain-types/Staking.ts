@@ -37,15 +37,17 @@ export interface StakingInterface extends utils.Interface {
     "calculateAvailableRewards(address)": FunctionFragment;
     "calculateTps(uint256)": FunctionFragment;
     "claimRewards()": FunctionFragment;
-    "dailyReward()": FunctionFragment;
+    "duration()": FunctionFragment;
     "getStakeHolder(address)": FunctionFragment;
     "lastUpdateTime()": FunctionFragment;
     "owner()": FunctionFragment;
     "precision()": FunctionFragment;
     "renounceOwnership()": FunctionFragment;
+    "reward()": FunctionFragment;
     "rewardProduced()": FunctionFragment;
-    "setParameters(uint256)": FunctionFragment;
+    "setParameters(uint256,uint256,uint256)": FunctionFragment;
     "stake(uint256)": FunctionFragment;
+    "tokenClaimPeriod()": FunctionFragment;
     "tokenReward()": FunctionFragment;
     "tokenStaking()": FunctionFragment;
     "totalStaked()": FunctionFragment;
@@ -67,10 +69,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "claimRewards",
     values?: undefined
   ): string;
-  encodeFunctionData(
-    functionFragment: "dailyReward",
-    values?: undefined
-  ): string;
+  encodeFunctionData(functionFragment: "duration", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "getStakeHolder",
     values: [string]
@@ -85,15 +84,20 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "reward", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "rewardProduced",
     values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "setParameters",
-    values: [BigNumberish]
+    values: [BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "stake", values: [BigNumberish]): string;
+  encodeFunctionData(
+    functionFragment: "tokenClaimPeriod",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "tokenReward",
     values?: undefined
@@ -132,10 +136,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "claimRewards",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "dailyReward",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "duration", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getStakeHolder",
     data: BytesLike
@@ -150,6 +151,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "reward", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "rewardProduced",
     data: BytesLike
@@ -159,6 +161,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "stake", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "tokenClaimPeriod",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "tokenReward",
     data: BytesLike
@@ -258,7 +264,7 @@ export interface Staking extends BaseContract {
     ): Promise<[BigNumber]>;
 
     calculateTps(
-      dayCount: BigNumberish,
+      passedTime: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
@@ -266,7 +272,7 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    dailyReward(overrides?: CallOverrides): Promise<[BigNumber]>;
+    duration(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     getStakeHolder(
       stakeHolderAddress: string,
@@ -283,10 +289,14 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    reward(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     rewardProduced(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     setParameters(
-      _dailyReward: BigNumberish,
+      _reward: BigNumberish,
+      _tokenClaimPeriod: BigNumberish,
+      _duration: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -294,6 +304,8 @@ export interface Staking extends BaseContract {
       amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    tokenClaimPeriod(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     tokenReward(overrides?: CallOverrides): Promise<[string]>;
 
@@ -324,7 +336,7 @@ export interface Staking extends BaseContract {
   ): Promise<BigNumber>;
 
   calculateTps(
-    dayCount: BigNumberish,
+    passedTime: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
@@ -332,7 +344,7 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  dailyReward(overrides?: CallOverrides): Promise<BigNumber>;
+  duration(overrides?: CallOverrides): Promise<BigNumber>;
 
   getStakeHolder(
     stakeHolderAddress: string,
@@ -349,10 +361,14 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  reward(overrides?: CallOverrides): Promise<BigNumber>;
+
   rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
 
   setParameters(
-    _dailyReward: BigNumberish,
+    _reward: BigNumberish,
+    _tokenClaimPeriod: BigNumberish,
+    _duration: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -360,6 +376,8 @@ export interface Staking extends BaseContract {
     amount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
+
+  tokenClaimPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
   tokenReward(overrides?: CallOverrides): Promise<string>;
 
@@ -390,13 +408,13 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     calculateTps(
-      dayCount: BigNumberish,
+      passedTime: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     claimRewards(overrides?: CallOverrides): Promise<void>;
 
-    dailyReward(overrides?: CallOverrides): Promise<BigNumber>;
+    duration(overrides?: CallOverrides): Promise<BigNumber>;
 
     getStakeHolder(
       stakeHolderAddress: string,
@@ -411,14 +429,20 @@ export interface Staking extends BaseContract {
 
     renounceOwnership(overrides?: CallOverrides): Promise<void>;
 
+    reward(overrides?: CallOverrides): Promise<BigNumber>;
+
     rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
 
     setParameters(
-      _dailyReward: BigNumberish,
+      _reward: BigNumberish,
+      _tokenClaimPeriod: BigNumberish,
+      _duration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
     stake(amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
+
+    tokenClaimPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
     tokenReward(overrides?: CallOverrides): Promise<string>;
 
@@ -474,7 +498,7 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     calculateTps(
-      dayCount: BigNumberish,
+      passedTime: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -482,7 +506,7 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    dailyReward(overrides?: CallOverrides): Promise<BigNumber>;
+    duration(overrides?: CallOverrides): Promise<BigNumber>;
 
     getStakeHolder(
       stakeHolderAddress: string,
@@ -499,10 +523,14 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    reward(overrides?: CallOverrides): Promise<BigNumber>;
+
     rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
 
     setParameters(
-      _dailyReward: BigNumberish,
+      _reward: BigNumberish,
+      _tokenClaimPeriod: BigNumberish,
+      _duration: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -510,6 +538,8 @@ export interface Staking extends BaseContract {
       amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    tokenClaimPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
     tokenReward(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -541,7 +571,7 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     calculateTps(
-      dayCount: BigNumberish,
+      passedTime: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -549,7 +579,7 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    dailyReward(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    duration(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getStakeHolder(
       stakeHolderAddress: string,
@@ -566,10 +596,14 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
+    reward(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     rewardProduced(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     setParameters(
-      _dailyReward: BigNumberish,
+      _reward: BigNumberish,
+      _tokenClaimPeriod: BigNumberish,
+      _duration: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -577,6 +611,8 @@ export interface Staking extends BaseContract {
       amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
+
+    tokenClaimPeriod(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     tokenReward(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
