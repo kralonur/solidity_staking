@@ -192,6 +192,18 @@ describe("Staking", function () {
     expect(ethers.utils.formatEther(await staking.calculateAvailableRewards(owner.address)))
       .equal("100.0");
   });
+
+  it("Should update daily reward", async function () {
+    const dailyReward = ethers.utils.parseEther("200");
+
+    expect(ethers.utils.formatEther(await staking.dailyReward()))
+      .equal("100.0");
+
+    await staking.setParameters(dailyReward);
+
+    expect(ethers.utils.formatEther(await staking.dailyReward()))
+      .equal("200.0");
+  });
 });
 
 

@@ -182,12 +182,9 @@ contract Staking is Ownable {
         StakeHolder storage stakeHolder = _stakeHolders[stakeHolderAddress];
 
         uint256 dayCount = (block.timestamp - lastUpdateTime) / 1 days;
-        console.log(dayCount);
         uint256 currentTps = tps +
             ((dailyReward * precision) / totalStaked) *
             dayCount;
-
-        console.log("OldTps: %s, NewTps: %s", tps, currentTps);
 
         return
             (currentTps *
