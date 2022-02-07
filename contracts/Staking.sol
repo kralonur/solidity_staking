@@ -4,25 +4,43 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "hardhat/console.sol";
 
+/**
+ * @title A staking contract that uses different tokens for staking and reward
+ * @author Me
+ */
 contract Staking {
+    /// Total staked to the contract
     uint256 public totalStaked;
+    /// Total reward produced
     uint256 public rewardProduced;
+    /// Daily reward to share between stake holders
     uint256 public dailyReward = 100 * precision;
+    /// Last update time
     uint256 public lastUpdateTime;
+    /// Token per stake
     uint256 public tps;
 
     uint256 public constant precision = 1e18;
 
+    /// Staked token
     IERC20 public tokenStaking;
+    /// Reward token
     IERC20 public tokenReward;
 
+    /**
+     * @dev This struct holds information about the stake holder
+     * @param staked Staked amount by stake holder
+     * @param availableReward Available reward for the stake holder
+     * @param rewardMissed Missed reward for the stake holder
+     */
     struct StakeHolder {
         uint256 staked;
         uint256 availableReward;
         uint256 rewardMissed;
     }
 
-    mapping(address => StakeHolder) private stakeHolders;
+    /// A mapping for storing stake holders
+    mapping(address => StakeHolder) private _stakeHolders;
 
     constructor(address addressTokenStaking, address addressTokenReward) {
         tokenStaking = IERC20(addressTokenStaking);
@@ -30,16 +48,26 @@ contract Staking {
         lastUpdateTime = block.timestamp;
     }
 
+    /**
+     * @dev Stakes the amount for the behalf of the stake holder
+     * @param amount The amount to stake
+     */
     function stake(uint256 amount) external {
         tokenStaking.transferFrom(msg.sender, address(this), amount);
         updateValues();
         totalStaked += amount;
-        stakeHolders[msg.sender].rewardMissed += calculateMissedRewards(amount);
-        stakeHolders[msg.sender].staked += amount;
+        _stakeHolders[msg.sender].rewardMissed += _calculateMissedRewards(
+            amount
+        );
+        _stakeHolders[msg.sender].staked += amount;
     }
 
+    /**
+     * @dev Unstakes the amount for the behalf of the stake holder
+     * @param amount The amount to unstake
+     */
     function unstake(uint256 amount) external {
-        StakeHolder storage stakeHolder = stakeHolders[msg.sender];
+        StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
         require(
             amount <= stakeHolder.staked,
             "Amount exceeds the staked amount"
@@ -50,14 +78,17 @@ contract Staking {
             stakeHolder.staked -
             stakeHolder.rewardMissed;
         stakeHolder.staked -= amount;
-        stakeHolder.rewardMissed = calculateMissedRewards(stakeHolder.staked);
+        stakeHolder.rewardMissed = _calculateMissedRewards(stakeHolder.staked);
         totalStaked -= amount;
         tokenStaking.transfer(msg.sender, amount); //for reentrancy
     }
 
+    /**
+     * @dev Claims the rewards for the stake holder
+     */
     function claimRewards() external {
         updateValues();
-        StakeHolder storage stakeHolder = stakeHolders[msg.sender];
+        StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
         uint256 awardToClaim = calculateAvailableRewards(msg.sender);
 
         tokenReward.transfer(msg.sender, awardToClaim);
@@ -65,32 +96,53 @@ contract Staking {
         stakeHolder.rewardMissed += awardToClaim * precision;
     }
 
+    /// See {StakeHolder}
+    function getStakeHolder(address stakeHolderAddress)
+        external
+        view
+        returns (
+            uint256 staked,
+            uint256 availableReward,
+            uint256 rewardMissed
+        )
+    {
+        StakeHolder memory stakeHolder = _stakeHolders[stakeHolderAddress];
+        return (
+            stakeHolder.staked,
+            stakeHolder.availableReward,
+            stakeHolder.rewardMissed
+        );
+    }
+
+    /**
+     * @dev Updates necessary values to calculate stake
+     */
     function updateValues() public {
         uint256 dayCount = (block.timestamp - lastUpdateTime) / 1 days;
         lastUpdateTime += dayCount * 1 days;
         tps = calculateTps(dayCount);
     }
 
+    /**
+     * @dev Calculates the tps, see{tps}
+     * @param dayCount The day count to calculate tps
+     */
     function calculateTps(uint256 dayCount) public view returns (uint256) {
         if (totalStaked == 0) return 0;
 
         return tps + ((dailyReward * precision) / totalStaked) * dayCount;
     }
 
-    function calculateMissedRewards(uint256 amount)
-        private
-        view
-        returns (uint256)
-    {
-        return amount * tps;
-    }
-
+    /**
+     * @dev Calculates the available rewards for the stake holder
+     * @param stakeHolderAddress The address of the stake holder
+     */
     function calculateAvailableRewards(address stakeHolderAddress)
         public
         view
         returns (uint256)
     {
-        StakeHolder storage stakeHolder = stakeHolders[stakeHolderAddress];
+        StakeHolder storage stakeHolder = _stakeHolders[stakeHolderAddress];
 
         uint256 dayCount = (block.timestamp - lastUpdateTime) / 1 days;
         console.log(dayCount);
@@ -107,20 +159,15 @@ contract Staking {
                 stakeHolder.availableReward) / precision;
     }
 
-    function getStakeHolder(address stakeHolderAddress)
-        external
+    /**
+     * @dev Calculates the missed rewards for the stake holder
+     * @param amount The amount of tokens
+     */
+    function _calculateMissedRewards(uint256 amount)
+        private
         view
-        returns (
-            uint256 staked,
-            uint256 availableReward,
-            uint256 rewardMissed
-        )
+        returns (uint256)
     {
-        StakeHolder memory stakeHolder = stakeHolders[stakeHolderAddress];
-        return (
-            stakeHolder.staked,
-            stakeHolder.availableReward,
-            stakeHolder.rewardMissed
-        );
+        return amount * tps;
     }
 }
