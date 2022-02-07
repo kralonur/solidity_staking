@@ -13,7 +13,7 @@ import {
   Signer,
   utils,
 } from "ethers";
-import { FunctionFragment, Result } from "@ethersproject/abi";
+import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
@@ -138,8 +138,37 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
 
-  events: {};
+  events: {
+    "Claim(address,uint256)": EventFragment;
+    "Stake(address,uint256)": EventFragment;
+    "Unstake(address,uint256)": EventFragment;
+  };
+
+  getEvent(nameOrSignatureOrTopic: "Claim"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Stake"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Unstake"): EventFragment;
 }
+
+export type ClaimEvent = TypedEvent<
+  [string, BigNumber],
+  { stakeHolder: string; amount: BigNumber }
+>;
+
+export type ClaimEventFilter = TypedEventFilter<ClaimEvent>;
+
+export type StakeEvent = TypedEvent<
+  [string, BigNumber],
+  { stakeHolder: string; amount: BigNumber }
+>;
+
+export type StakeEventFilter = TypedEventFilter<StakeEvent>;
+
+export type UnstakeEvent = TypedEvent<
+  [string, BigNumber],
+  { stakeHolder: string; amount: BigNumber }
+>;
+
+export type UnstakeEventFilter = TypedEventFilter<UnstakeEvent>;
 
 export interface Staking extends BaseContract {
   contractName: "Staking";
@@ -327,7 +356,25 @@ export interface Staking extends BaseContract {
     updateValues(overrides?: CallOverrides): Promise<void>;
   };
 
-  filters: {};
+  filters: {
+    "Claim(address,uint256)"(
+      stakeHolder?: string | null,
+      amount?: null
+    ): ClaimEventFilter;
+    Claim(stakeHolder?: string | null, amount?: null): ClaimEventFilter;
+
+    "Stake(address,uint256)"(
+      stakeHolder?: string | null,
+      amount?: null
+    ): StakeEventFilter;
+    Stake(stakeHolder?: string | null, amount?: null): StakeEventFilter;
+
+    "Unstake(address,uint256)"(
+      stakeHolder?: string | null,
+      amount?: null
+    ): UnstakeEventFilter;
+    Unstake(stakeHolder?: string | null, amount?: null): UnstakeEventFilter;
+  };
 
   estimateGas: {
     calculateAvailableRewards(

@@ -49,6 +49,25 @@ contract Staking {
     }
 
     /**
+     * @dev Emitted when stake holder staked tokens
+     * @param stakeHolder The address of the stake holder
+     * @param amount The amount of tokens staked
+     */
+    event Stake(address indexed stakeHolder, uint256 amount);
+    /**
+     * @dev Emitted when stake holder unstaked tokens
+     * @param stakeHolder The address of the stake holder
+     * @param amount The amount of tokens unstaked
+     */
+    event Unstake(address indexed stakeHolder, uint256 amount);
+    /**
+     * @dev Emitted when stake holder claimed reward tokens
+     * @param stakeHolder The address of the stake holder
+     * @param amount The amount of reward tokens claimed
+     */
+    event Claim(address indexed stakeHolder, uint256 amount);
+
+    /**
      * @dev Stakes the amount for the behalf of the stake holder
      * @param amount The amount to stake
      */
@@ -60,6 +79,8 @@ contract Staking {
             amount
         );
         _stakeHolders[msg.sender].staked += amount;
+
+        emit Stake(msg.sender, amount);
     }
 
     /**
@@ -81,6 +102,8 @@ contract Staking {
         stakeHolder.rewardMissed = _calculateMissedRewards(stakeHolder.staked);
         totalStaked -= amount;
         tokenStaking.transfer(msg.sender, amount); //for reentrancy
+
+        emit Unstake(msg.sender, amount);
     }
 
     /**
@@ -94,6 +117,8 @@ contract Staking {
         tokenReward.transfer(msg.sender, awardToClaim);
 
         stakeHolder.rewardMissed += awardToClaim * precision;
+
+        emit Claim(msg.sender, awardToClaim);
     }
 
     /// See {StakeHolder}
