@@ -7,11 +7,11 @@ import "hardhat/console.sol";
 contract Staking {
     uint256 public totalStaked;
     uint256 public rewardProduced;
-    uint256 public dailyReward = 100;
+    uint256 public dailyReward = 100 * precision;
     uint256 public lastUpdateTime;
     uint256 public tps;
 
-    uint256 public constant mathConstant = 1e18;
+    uint256 public constant precision = 1e18;
 
     IERC20 public tokenStaking;
     IERC20 public tokenReward;
@@ -62,7 +62,7 @@ contract Staking {
 
         tokenReward.transfer(msg.sender, awardToClaim);
 
-        stakeHolder.rewardMissed += awardToClaim * mathConstant;
+        stakeHolder.rewardMissed += awardToClaim * precision;
     }
 
     function updateValues() public {
@@ -74,7 +74,7 @@ contract Staking {
     function calculateTps(uint256 dayCount) public view returns (uint256) {
         if (totalStaked == 0) return 0;
 
-        return tps + ((dailyReward * mathConstant) / totalStaked) * dayCount;
+        return tps + ((dailyReward * precision) / totalStaked) * dayCount;
     }
 
     function calculateMissedRewards(uint256 amount)
@@ -82,7 +82,6 @@ contract Staking {
         view
         returns (uint256)
     {
-        console.log("Amount: %s, Tps: %s", amount, tps);
         return amount * tps;
     }
 
@@ -92,12 +91,20 @@ contract Staking {
         returns (uint256)
     {
         StakeHolder storage stakeHolder = stakeHolders[stakeHolderAddress];
+
+        uint256 dayCount = (block.timestamp - lastUpdateTime) / 1 days;
+        console.log(dayCount);
+        uint256 currentTps = tps +
+            ((dailyReward * precision) / totalStaked) *
+            dayCount;
+
+        console.log("OldTps: %s, NewTps: %s", tps, currentTps);
+
         return
-            tps *
-            stakeHolder.staked -
-            stakeHolder.rewardMissed +
-            stakeHolder.availableReward /
-            mathConstant;
+            (currentTps *
+                stakeHolder.staked -
+                stakeHolder.rewardMissed +
+                stakeHolder.availableReward) / precision;
     }
 
     function getStakeHolder(address stakeHolderAddress)

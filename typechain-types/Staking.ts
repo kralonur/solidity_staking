@@ -26,7 +26,7 @@ export interface StakingInterface extends utils.Interface {
     "dailyReward()": FunctionFragment;
     "getStakeHolder(address)": FunctionFragment;
     "lastUpdateTime()": FunctionFragment;
-    "mathConstant()": FunctionFragment;
+    "precision()": FunctionFragment;
     "rewardProduced()": FunctionFragment;
     "stake(uint256)": FunctionFragment;
     "tokenReward()": FunctionFragment;
@@ -61,10 +61,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "lastUpdateTime",
     values?: undefined
   ): string;
-  encodeFunctionData(
-    functionFragment: "mathConstant",
-    values?: undefined
-  ): string;
+  encodeFunctionData(functionFragment: "precision", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "rewardProduced",
     values?: undefined
@@ -116,10 +113,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "lastUpdateTime",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "mathConstant",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "precision", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "rewardProduced",
     data: BytesLike
@@ -204,7 +198,7 @@ export interface Staking extends BaseContract {
 
     lastUpdateTime(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    mathConstant(overrides?: CallOverrides): Promise<[BigNumber]>;
+    precision(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     rewardProduced(overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -260,7 +254,7 @@ export interface Staking extends BaseContract {
 
   lastUpdateTime(overrides?: CallOverrides): Promise<BigNumber>;
 
-  mathConstant(overrides?: CallOverrides): Promise<BigNumber>;
+  precision(overrides?: CallOverrides): Promise<BigNumber>;
 
   rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -314,7 +308,7 @@ export interface Staking extends BaseContract {
 
     lastUpdateTime(overrides?: CallOverrides): Promise<BigNumber>;
 
-    mathConstant(overrides?: CallOverrides): Promise<BigNumber>;
+    precision(overrides?: CallOverrides): Promise<BigNumber>;
 
     rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -359,7 +353,7 @@ export interface Staking extends BaseContract {
 
     lastUpdateTime(overrides?: CallOverrides): Promise<BigNumber>;
 
-    mathConstant(overrides?: CallOverrides): Promise<BigNumber>;
+    precision(overrides?: CallOverrides): Promise<BigNumber>;
 
     rewardProduced(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -410,7 +404,7 @@ export interface Staking extends BaseContract {
 
     lastUpdateTime(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    mathConstant(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    precision(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     rewardProduced(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

@@ -22,9 +22,9 @@ describe("Staking", function () {
   });
 
   it("Should stake", async function () {
-    const amount = 1000;
-    const amountToAdd = 100;
-    const totalAmount = amount + amountToAdd;
+    const amount = ethers.utils.parseEther("1000");
+    const amountToAdd = ethers.utils.parseEther("100");
+    const totalAmount = amount.add(amountToAdd);
     await tokenStaking.mint(owner.address, totalAmount);
     await tokenStaking.approve(staking.address, totalAmount);
 
@@ -53,9 +53,9 @@ describe("Staking", function () {
   });
 
   it("Should return tps", async function () {
-    const stakeHolderFirstAmount = 1000;
-    const stakeHolderSecondAmount = 2000;
-    const stakeHolderThirdAmount = 2500;
+    const stakeHolderFirstAmount = ethers.utils.parseEther("1000");
+    const stakeHolderSecondAmount = ethers.utils.parseEther("2000");
+    const stakeHolderThirdAmount = ethers.utils.parseEther("2500");
 
     // stake holder 1 mint and approve 
     await tokenStaking.mint(owner.address, stakeHolderFirstAmount);
@@ -89,72 +89,10 @@ describe("Staking", function () {
       .equal("0.151515151515151514");
   });
 
-  it("Should return reward missed", async function () {
-    const stakeHolderFirstAmount = 1000;
-    const stakeHolderFirstNewAmount = 2500;
-    const stakeHolderSecondAmount = 2000;
-    const stakeHolderThirdAmount = 2500;
-    const stakeHolderFourthAmount = 5000;
-
-    // stake holder 1 mint and approve 
-    await tokenStaking.mint(owner.address, stakeHolderFirstNewAmount);
-    await tokenStaking.approve(staking.address, stakeHolderFirstNewAmount);
-    // stake holder 2 mint and approve 
-    await tokenStaking.mint(accounts[1].address, stakeHolderSecondAmount);
-    await tokenStaking.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
-    // stake holder 3 mint and approve 
-    await tokenStaking.mint(accounts[2].address, stakeHolderThirdAmount);
-    await tokenStaking.connect(accounts[2]).approve(staking.address, stakeHolderThirdAmount);
-    // stake holder 4 mint and approve 
-    await tokenStaking.mint(accounts[3].address, stakeHolderFourthAmount);
-    await tokenStaking.connect(accounts[3]).approve(staking.address, stakeHolderFourthAmount);
-
-    // Day 1
-    await staking.stake(stakeHolderFirstAmount);
-    await simulateTimePassed();
-    await staking.updateValues();
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(owner.address))["rewardMissed"]))
-      .equal("0.0");
-
-    // Day 2
-    await staking.connect(accounts[1]).stake(stakeHolderSecondAmount);
-    await simulateTimePassed();
-    await staking.updateValues();
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(owner.address))["rewardMissed"]))
-      .equal("0.0");
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(accounts[1].address))["rewardMissed"]))
-      .equal("200.0");
-
-    // Day 3
-    await staking.connect(accounts[2]).stake(stakeHolderThirdAmount);
-    await simulateTimePassed();
-    await staking.updateValues();
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(owner.address))["rewardMissed"]))
-      .equal("0.0");
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(accounts[1].address))["rewardMissed"]))
-      .equal("200.0");
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(accounts[2].address))["rewardMissed"]))
-      .equal("333.3333333333333325");
-
-    // Day 4
-    await staking.stake(stakeHolderFirstNewAmount - stakeHolderFirstAmount);
-    await staking.connect(accounts[3]).stake(stakeHolderFourthAmount);
-    await simulateTimePassed();
-    await staking.updateValues();
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(owner.address))["rewardMissed"]))
-      .equal("227.272727272727271");
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(accounts[1].address))["rewardMissed"]))
-      .equal("200.0");
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(accounts[2].address))["rewardMissed"]))
-      .equal("333.3333333333333325");
-    expect(ethers.utils.formatEther((await staking.getStakeHolder(accounts[3].address))["rewardMissed"]))
-      .equal("757.57575757575757");
-  });
-
   it("Should return reward available", async function () {
-    const stakeHolderFirstAmount = 1000;
-    const stakeHolderSecondAmount = 2000;
-    const stakeHolderThirdAmount = 2500;
+    const stakeHolderFirstAmount = ethers.utils.parseEther("1000");
+    const stakeHolderSecondAmount = ethers.utils.parseEther("2000");
+    const stakeHolderThirdAmount = ethers.utils.parseEther("2500");
 
     // stake holder 1 mint and approve 
     await tokenStaking.mint(owner.address, stakeHolderFirstAmount);
@@ -194,22 +132,58 @@ describe("Staking", function () {
       .equal("45.4545454545454525");
   });
 
-  it("Should unstake", async function () {
-    const stakeHolderFirstAmount = 1000;
+  it("Should claim rewards", async function () {
+    const stakeHolderFirstAmount = ethers.utils.parseEther("1000");
+    const stakeHolderSecondAmount = ethers.utils.parseEther("2000");
+    const stakeHolderThirdAmount = ethers.utils.parseEther("2500");
 
     // stake holder 1 mint and approve 
     await tokenStaking.mint(owner.address, stakeHolderFirstAmount);
-    await tokenStaking.approve(staking.address, stakeHolderFirstAmount * 2); // for unstake test
+    await tokenStaking.approve(staking.address, stakeHolderFirstAmount);
+    // stake holder 2 mint and approve 
+    await tokenStaking.mint(accounts[1].address, stakeHolderSecondAmount);
+    await tokenStaking.connect(accounts[1]).approve(staking.address, stakeHolderSecondAmount);
+    // stake holder 3 mint and approve 
+    await tokenStaking.mint(accounts[2].address, stakeHolderThirdAmount);
+    await tokenStaking.connect(accounts[2]).approve(staking.address, stakeHolderThirdAmount);
+    // mint reward tokens
+    await tokenReward.mint(staking.address, ethers.utils.parseEther("2500"));
+    await tokenReward.approve(staking.address, ethers.utils.parseEther("2500"));
+
+
+    // Day 1
+    await staking.stake(stakeHolderFirstAmount);
+    await simulateTimePassed();
+
+    // Day 2
+    await staking.connect(accounts[1]).stake(stakeHolderSecondAmount);
+    await simulateTimePassed();
+
+    // Day 3
+    await staking.connect(accounts[2]).stake(stakeHolderThirdAmount);
+    await simulateTimePassed();
+
+    await expect(await staking.claimRewards())
+      .to.emit(tokenReward, "Transfer")
+      .withArgs(staking.address, owner.address, ethers.utils.parseEther("151.515151515151514"));
+  });
+
+  it("Should unstake", async function () {
+    const stakeHolderFirstAmount = ethers.utils.parseEther("1000");
+
+    // stake holder 1 mint and approve 
+    await tokenStaking.mint(owner.address, stakeHolderFirstAmount);
+    await tokenStaking.approve(staking.address, stakeHolderFirstAmount.mul(2)); // for unstake test
 
     await staking.stake(stakeHolderFirstAmount);
 
-    await expect(staking.unstake(stakeHolderFirstAmount * 5))
+    await expect(staking.unstake(stakeHolderFirstAmount.mul(3)))
       .to.be.revertedWith("Amount exceeds the staked amount");
 
-    await expect(await staking.unstake(stakeHolderFirstAmount / 2))
+    await expect(await staking.unstake(stakeHolderFirstAmount.div(2)))
       .to.emit(tokenStaking, "Transfer")
-      .withArgs(staking.address, owner.address, stakeHolderFirstAmount / 2);
-    await staking.unstake(stakeHolderFirstAmount / 2);
+      .withArgs(staking.address, owner.address, stakeHolderFirstAmount.div(2));
+    await staking.unstake(stakeHolderFirstAmount.div(2));
 
     await staking.stake(stakeHolderFirstAmount);
     await simulateTimePassed();
