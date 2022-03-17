@@ -21,13 +21,13 @@ export declare namespace Staking {
   export type StakeHolderStruct = {
     staked: BigNumberish;
     availableReward: BigNumberish;
-    rewardMissed: BigNumberish;
+    latestTps: BigNumberish;
   };
 
   export type StakeHolderStructOutput = [BigNumber, BigNumber, BigNumber] & {
     staked: BigNumber;
     availableReward: BigNumber;
-    rewardMissed: BigNumber;
+    latestTps: BigNumber;
   };
 }
 

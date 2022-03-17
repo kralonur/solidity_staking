@@ -39,12 +39,12 @@ contract Staking is Ownable {
    * @dev This struct holds information about the stake holder
    * @param staked Staked amount by stake holder
    * @param availableReward Available reward for the stake holder
-   * @param rewardMissed Missed reward for the stake holder
+   * @param latestTps Latest tps value for the stake holder
    */
   struct StakeHolder {
     uint256 staked;
     uint256 availableReward;
-    uint256 rewardMissed;
+    uint256 latestTps;
   }
 
   /// A mapping for storing stake holders
@@ -92,7 +92,6 @@ contract Staking is Ownable {
     updateValues();
     totalStaked += amount;
     _stakeHolders[msg.sender].staked += amount;
-    _stakeHolders[msg.sender].rewardMissed += _calculateMissedRewards(amount);
     tokenStaking.safeTransferFrom(msg.sender, address(this), amount);
 
     emit Stake(msg.sender, amount);
@@ -106,13 +105,10 @@ contract Staking is Ownable {
     StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
     require(amount <= stakeHolder.staked, "Amount exceeds the staked amount");
     updateValues();
-    stakeHolder.availableReward +=
-      tps *
-      stakeHolder.staked -
-      stakeHolder.rewardMissed;
-    stakeHolder.staked -= amount;
-    stakeHolder.rewardMissed = _calculateMissedRewards(stakeHolder.staked);
+
     totalStaked -= amount;
+    stakeHolder.staked -= amount;
+
     tokenStaking.safeTransfer(msg.sender, amount); //for reentrancy
 
     emit Unstake(msg.sender, amount);
@@ -124,13 +120,13 @@ contract Staking is Ownable {
   function claimRewards() external {
     updateValues();
     StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
-    uint256 awardToClaim = calculateAvailableRewards(msg.sender);
+
+    uint256 awardToClaim = stakeHolder.availableReward;
+
+    stakeHolder.availableReward = 0;
+    rewardProduced += awardToClaim;
 
     tokenReward.safeTransfer(msg.sender, awardToClaim);
-
-    stakeHolder.rewardMissed += awardToClaim * precision;
-
-    rewardProduced += awardToClaim;
 
     emit Claim(msg.sender, awardToClaim);
   }
@@ -169,6 +165,11 @@ contract Staking is Ownable {
     uint256 passedTime = (block.timestamp - lastUpdateTime) / tokenClaimPeriod;
     tps = calculateTps(passedTime);
     lastUpdateTime += passedTime * tokenClaimPeriod;
+
+    StakeHolder storage stakeHolder = _stakeHolders[msg.sender];
+
+    stakeHolder.availableReward = calculateAvailableRewards(msg.sender);
+    stakeHolder.latestTps = tps;
   }
 
   /**
@@ -193,24 +194,11 @@ contract Staking is Ownable {
     view
     returns (uint256)
   {
-    StakeHolder storage stakeHolder = _stakeHolders[stakeHolderAddress];
+    StakeHolder memory stakeHolder = _stakeHolders[stakeHolderAddress];
+
+    uint256 deltaTps = tps - stakeHolder.latestTps;
 
     return
-      (tps *
-        stakeHolder.staked -
-        stakeHolder.rewardMissed +
-        stakeHolder.availableReward) / precision;
-  }
-
-  /**
-   * @dev Calculates the missed rewards for the stake holder
-   * @param amount The amount of tokens
-   */
-  function _calculateMissedRewards(uint256 amount)
-    private
-    view
-    returns (uint256)
-  {
-    return amount * tps;
+      stakeHolder.availableReward + (stakeHolder.staked * deltaTps) / precision;
   }
 }
